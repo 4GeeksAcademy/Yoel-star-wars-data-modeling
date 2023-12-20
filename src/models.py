@@ -1,32 +1,58 @@
-import os
-import sys
-from sqlalchemy import Column, ForeignKey, Integer, String
-from sqlalchemy.orm import relationship, declarative_base
-from sqlalchemy import create_engine
 from eralchemy2 import render_er
 
-Base = declarative_base()
+from sqlalchemy import Column
+from sqlalchemy import Table
+from typing import List
+from typing import Optional
+from sqlalchemy import ForeignKey
+from sqlalchemy import String, Integer, Float, Boolean
+from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import mapped_column
+from sqlalchemy.orm import relationship
 
-class Person(Base):
-    __tablename__ = 'person'
-    # Here we define columns for the table person
-    # Notice that each column is also a normal Python instance attribute.
-    id = Column(Integer, primary_key=True)
-    name = Column(String(250), nullable=False)
 
-class Address(Base):
-    __tablename__ = 'address'
-    # Here we define columns for the table address.
-    # Notice that each column is also a normal Python instance attribute.
-    id = Column(Integer, primary_key=True)
-    street_name = Column(String(250))
-    street_number = Column(String(250))
-    post_code = Column(String(250), nullable=False)
-    person_id = Column(Integer, ForeignKey('person.id'))
-    person = relationship(Person)
+class Base(DeclarativeBase):
+    pass
 
-    def to_dict(self):
-        return {}
+association_table = Table('association', Base.metadata,
+    Column('user_id', Integer, ForeignKey('user.id'), primary_key=True),
+    Column('planet_id', Integer, ForeignKey('planet.id'), nullable=True, primary_key=True),
+    Column('character_id', Integer, ForeignKey('character.id'), nullable=True, primary_key=True)
+)
+
+class User(Base):
+    __tablename__ = 'user'
+    id: Mapped[int] = mapped_column(primary_key=True, unique=True)
+    username: Mapped[str]  = mapped_column(unique=True, nullable=False)
+    name: Mapped[str]
+    last_name: Mapped[str] = mapped_column(nullable=True)
+    email: Mapped[str] 
+    country: Mapped[str] = mapped_column(nullable=True)
+    planets: Mapped[List["Planet"]] = relationship(secondary=association_table, back_populates='users')
+    characters: Mapped[List["Character"]] = relationship(secondary=association_table, back_populates='users')
+
+class Planet(Base):
+    __tablename__ = 'planet'
+    id: Mapped[int] = mapped_column(primary_key=True, unique=True)
+    name: Mapped[str] 
+    population: Mapped[int] = mapped_column(nullable=True)
+    gravity: Mapped[int] = mapped_column(nullable=True)
+    climate: Mapped[str] = mapped_column(nullable=True)
+    users: Mapped[List["User"]] = relationship(secondary=association_table, back_populates='planets')
+   
+
+class Character(Base):
+    __tablename__ = 'character'
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, unique=True)
+    name: Mapped[str] 
+    last_name: Mapped[str] = mapped_column(nullable=True)
+    eye_color: Mapped[str] = mapped_column(nullable=True)
+    height: Mapped[int] = mapped_column(nullable=True)
+    origin_planet: Mapped[str] = mapped_column(nullable=True)
+    users: Mapped[List["User"]] = relationship(secondary=association_table, back_populates='characters')
+    
+
 
 ## Draw from SQLAlchemy base
 render_er(Base, 'diagram.png')
